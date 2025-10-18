@@ -1,7 +1,7 @@
 using Grades.Domain.Models;
 using Grades.Application.DTOs;
 
-namespace Grades.Application.Abstractions;
+namespace Grades.Application.Interfaces;
 
 public interface IQuestionService
 {

@@ -1,4 +1,4 @@
-using Grades.Application.Abstractions;
+using Grades.Application.Interfaces;
 using Grades.Infrastructure.Persistence;
 using Grades.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,8 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IQuestionService, QuestionService>();
+
+        services.AddScoped<IReportService, ReportService>();
         return services;
     }
 }

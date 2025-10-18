@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using Grades.Application.Abstractions;
+using Grades.Application.Interfaces;
 using Grades.Application.DTOs;
 using Grades.Application.Exceptions;
 
@@ -45,7 +45,7 @@ public class QuestionsController : ControllerBase
         try
         {
             var updated = await _service.UpdateAsync(snapshotId, questionId, dto, ct);
-            return Ok(updated); // or NoContent() if you prefer no body
+            return Ok(updated);
         }
         catch (QuestionNotFoundException ex)
         {

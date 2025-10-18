@@ -1,4 +1,4 @@
-using Grades.Application.Abstractions;
+using Grades.Application.Interfaces;
 using Grades.Application.DTOs;
 using Grades.Application.Exceptions;
 using Grades.Domain.Models;
