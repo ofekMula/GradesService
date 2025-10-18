@@ -1,32 +1,57 @@
 using Grades.Application.DTOs.Reports;
 using Grades.Application.Exceptions;
 using Grades.Application.Interfaces;
-using Grades.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-
+using System.Data;
+using Microsoft.Data.SqlClient;
 namespace Grades.Infrastructure.Services;
 
 public sealed class ReportService(GradesDbContext db) : IReportService
 {
-    public async Task<StudentReportDto> GenerateStudentReportAsync(int snapshotId, CancellationToken ct = default)
+public async Task<StudentReportDto> GenerateStudentReportAsync(
+        int snapshotId, CancellationToken ct = default)
     {
-        var zoneScores = await db.Questions
+        var hasAny = await db.Questions
             .AsNoTracking()
-            .Where(q => q.SnapshotId == snapshotId)
-            .GroupBy(q => q.TestId)
+            .AnyAsync(q => q.SnapshotId == snapshotId, ct);
+
+        if (!hasAny)
+            throw new SnapshotHasNoQuestionsException(snapshotId);
+
+        var baseRaw =
+            from s  in db.Subjects.AsNoTracking()
+            join sz in db.SubjectZones.AsNoTracking()
+                on new { s.SnapshotId, s.SubjectId } equals new { sz.SnapshotId, sz.SubjectId }
+            join z  in db.Zones.AsNoTracking()
+                on new { sz.SnapshotId, sz.ZoneId } equals new { z.SnapshotId, z.ZoneId }
+            join zq in db.ZonesQuestions.AsNoTracking()
+                on new { z.SnapshotId, z.ZoneId } equals new { zq.SnapshotId, zq.ZoneId }
+            join q  in db.Questions.AsNoTracking()
+                on new { zq.SnapshotId, zq.QuestionId } equals new { q.SnapshotId, q.QuestionId }
+            join t  in db.Tests.AsNoTracking()
+                on q.TestId equals t.TestId
+            where s.SnapshotId == snapshotId
+               && q.SnapshotId == snapshotId
+               && z.IsRelevant == true
+               && q.IsRelevant == true
+               && q.Score != null
+            select new { z.ZoneId, z.ZoneName, q.Score };
+
+        var zoneScores = await baseRaw
+            .GroupBy(x => new { x.ZoneId, x.ZoneName })
             .Select(g => new ZoneScoreDto(
-                g.Key,
-                "Test " + g.Key,
-                g.Select(x => (double?)x.Score).Average() ?? 0.0
+                g.Key.ZoneId,
+                g.Key.ZoneName,
+                g.Average(x => (double)x.Score!)
             ))
             .ToListAsync(ct);
 
         if (zoneScores.Count == 0)
             throw new SnapshotHasNoQuestionsException(snapshotId);
 
-        var top = zoneScores.OrderByDescending(z => z.Score).Take(3).ToList();
+        var top    = zoneScores.OrderByDescending(z => z.Score).Take(3).ToList();
         var bottom = zoneScores.OrderBy(z => z.Score).Take(3).ToList();
-        var low = zoneScores.Where(z => z.Score < 60).OrderBy(z => z.Score).ToList();
+        var low    = zoneScores.Where(z => z.Score < 60).OrderBy(z => z.Score).ToList();
 
         return new StudentReportDto(
             "Student report",
@@ -37,32 +62,62 @@ public sealed class ReportService(GradesDbContext db) : IReportService
         );
     }
 
-    public async Task<PrincipalReportDto> GeneratePrincipalReportAsync(
-        IReadOnlyCollection<int> snapshotIds,
-        CancellationToken ct = default)
-    {
+public async Task<PrincipalReportDto> GeneratePrincipalReportAsync(
+    IReadOnlyCollection<int> snapshotIds,
+    CancellationToken ct = default)
+{
+    if (snapshotIds is null || snapshotIds.Count == 0)
+        throw new PrincipalReportValidationException("At least one snapshotId is required.");
 
-        // Aggregate across snapshots, per TestId (acting as Zone)
-        var perZone = await db.Questions
-            .AsNoTracking()
-            .Where(q => snapshotIds.Contains(q.SnapshotId))
-            .GroupBy(q => q.TestId)
-            .Select(g => new ZoneScoreDto(
-                g.Key,
-                "Test " + g.Key, // replace with join to Zones if you have a Zones table
-                g.Select(x => (double?)x.Score).Average() ?? 0.0
-            ))
-            .ToListAsync(ct);
+    var hasAny = await db.Questions.AsNoTracking()
+        .AnyAsync(q => snapshotIds.Contains(q.SnapshotId), ct);
 
-        if (perZone.Count == 0)
-            throw new SnapshotHasNoQuestionsException(snapshotIds);
+    if (!hasAny)
+        throw new SnapshotHasNoQuestionsException(snapshotIds);
 
-        var lowest = perZone.OrderBy(z => z.Score).First();
 
-        return new PrincipalReportDto(
-            "Principal Report",
-            DateTime.UtcNow,
-            lowest
-        );
-    }
+    var baseRaw =
+        from s  in db.Subjects.AsNoTracking()
+        join sz in db.SubjectZones.AsNoTracking()
+            on new { s.SnapshotId, s.SubjectId } equals new { sz.SnapshotId, sz.SubjectId }
+        join z  in db.Zones.AsNoTracking()
+            on new { sz.SnapshotId, sz.ZoneId } equals new { z.SnapshotId, z.ZoneId }
+        join zq in db.ZonesQuestions.AsNoTracking()
+            on new { z.SnapshotId, z.ZoneId } equals new { zq.SnapshotId, zq.ZoneId }
+        join q  in db.Questions.AsNoTracking()
+            on new { zq.SnapshotId, zq.QuestionId } equals new { q.SnapshotId, q.QuestionId }
+        join t  in db.Tests.AsNoTracking()
+            on q.TestId equals t.TestId
+        where snapshotIds.Contains(s.SnapshotId)
+           && snapshotIds.Contains(q.SnapshotId)
+           && z.IsRelevant == true
+           && q.IsRelevant == true
+           && q.Score != null
+        select new
+        {
+            z.ZoneId,
+            z.ZoneName,
+            Score = (double)q.Score!
+        };
+
+    var perZone = await baseRaw
+        .GroupBy(x => new { x.ZoneId, x.ZoneName })
+        .Select(g => new ZoneScoreDto(
+            g.Key.ZoneId,
+            g.Key.ZoneName,
+            g.Average(x => x.Score)
+        ))
+        .ToListAsync(ct);
+
+    if (perZone.Count == 0)
+        throw new SnapshotHasNoQuestionsException(snapshotIds);
+
+    var lowest = perZone.OrderBy(z => z.Score).First();
+
+    return new PrincipalReportDto(
+        "Principal Report",
+        DateTime.UtcNow,
+        lowest
+    );
+}
 }

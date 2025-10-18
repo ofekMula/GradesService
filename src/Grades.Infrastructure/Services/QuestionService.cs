@@ -2,9 +2,7 @@ using Grades.Application.Interfaces;
 using Grades.Application.DTOs;
 using Grades.Application.Exceptions;
 using Grades.Domain.Models;
-using Grades.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 
 namespace Grades.Infrastructure.Services;
 
