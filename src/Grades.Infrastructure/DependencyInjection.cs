@@ -1,5 +1,4 @@
 using Grades.Application.Interfaces;
-using Grades.Infrastructure.Persistence;
 using Grades.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
