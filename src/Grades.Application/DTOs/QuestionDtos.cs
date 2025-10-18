@@ -1,9 +1,24 @@
 namespace Grades.Application.DTOs;
 
 using System.ComponentModel.DataAnnotations;
-public record QuestionCreateDto(string QuestionText, int? Score, bool IsRelevant, int TestId);
+
+public record QuestionCreateDto(
+    [Required, StringLength(300)] string QuestionText,
+    [Range(typeof(int), "0", "100")] int? Score,
+    bool IsRelevant,
+    [Range(1, int.MaxValue)] int TestId
+);
+
 public record QuestionUpdateDto(
-    string? QuestionText,
-    [Range(0, 100)] int? Score,
+    [StringLength(300)] string? QuestionText,
+    [Range(typeof(int), "0", "100")] int? Score,
     bool? IsRelevant
+);
+
+public record QuestionDto(
+    int QuestionId,
+    string QuestionText,
+    int? Score,
+    bool IsRelevant,
+    int TestId
 );

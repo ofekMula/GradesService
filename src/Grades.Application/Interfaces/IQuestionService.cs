@@ -5,8 +5,8 @@ namespace Grades.Application.Abstractions;
 
 public interface IQuestionService
 {
-    Task<IReadOnlyList<Question>> GetAllAsync(int snapshotId, CancellationToken ct = default);
-    Task<Question?> CreateAsync(int snapshotId, QuestionCreateDto dto, CancellationToken ct = default);
-    Task<bool> UpdateAsync(int snapshotId, int questionId, QuestionUpdateDto dto, CancellationToken ct = default);
-    Task<bool> DeleteAsync(int snapshotId, int questionId, CancellationToken ct = default);
+    Task<IReadOnlyList<QuestionDto>> GetAllAsync(int snapshotId, CancellationToken ct = default);
+    Task<QuestionDto?> CreateAsync(int snapshotId, QuestionCreateDto dto, CancellationToken ct = default);
+    Task<QuestionDto?> UpdateAsync(int snapshotId, int questionId, QuestionUpdateDto dto, CancellationToken ct = default);
+    Task DeleteAsync(int snapshotId, int questionId, CancellationToken ct = default);
 }
