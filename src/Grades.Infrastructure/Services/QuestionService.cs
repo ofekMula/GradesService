@@ -55,13 +55,9 @@ public class QuestionService(GradesDbContext db) : IQuestionService
 
         db.Questions.Add(question);
 
-        var zq = new ZonesQuestion
-        {
-            SnapshotId = snapshotId,
-            ZoneId     = dto.ZoneId,
-            QuestionId = question.QuestionId
-        };
-        db.ZonesQuestions.Add(zq);
+        await db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO ZonesQuestions (QuestionId, SnapshotId, ZoneId)
+            VALUES ({question.QuestionId}, {snapshotId}, {dto.ZoneId});", ct);
 
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
