@@ -1,4 +1,3 @@
-// Grades.Api/Controllers/ReportsController.cs
 using Microsoft.AspNetCore.Mvc;
 using Grades.Application.DTOs.Reports;
 using Grades.Application.Exceptions;

@@ -33,7 +33,7 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 ### Run the Server
 - Via docker compose: `docker compose up`.
 - Local dev run: `dotnet watch run --project src/Grades.Api --reload`
-
+- Swagger: `http://localhost:8080/swagger/index.html`
 
 ## Implementation Notes
 
