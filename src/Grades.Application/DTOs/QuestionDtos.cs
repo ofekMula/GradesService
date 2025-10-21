@@ -3,14 +3,16 @@ namespace Grades.Application.DTOs;
 using System.ComponentModel.DataAnnotations;
 
 public record QuestionCreateDto(
-    [Required, StringLength(300)] string QuestionText,
+    [Required, StringLength(1000)] string QuestionText,
     [Range(typeof(int), "0", "100")] int? Score,
     bool IsRelevant,
-    [Range(1, int.MaxValue)] int TestId
+    [Range(1, int.MaxValue)] int TestId,
+    [Range(1, int.MaxValue)] int ZoneId
+
 );
 
 public record QuestionUpdateDto(
-    [StringLength(300)] string? QuestionText,
+    [StringLength(1000)] string? QuestionText,
     [Range(typeof(int), "0", "100")] int? Score,
     bool? IsRelevant
 );

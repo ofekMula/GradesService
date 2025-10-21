@@ -14,11 +14,14 @@ public class QuestionsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<QuestionDto>>> GetAll(
-        int snapshotId, CancellationToken ct)
+        int snapshotId,
+        [FromQuery] PaginationDto pagination,
+        CancellationToken ct = default)
     {
-        var items = await _service.GetAllAsync(snapshotId, ct);
+        var items = await _service.GetAllAsync(snapshotId, pagination, ct);
         return Ok(items);
     }
+
 
     [HttpPost]
     public async Task<ActionResult<QuestionDto>> Create(
@@ -30,6 +33,14 @@ public class QuestionsController : ControllerBase
 
             var location = $"/api/snapshots/{snapshotId}/questions/{created.QuestionId}";
             return Created(location, created);
+        }
+        catch (ZoneNotFoundException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (TestNotFoundException ex)
+        {
+            return BadRequest(new { error = ex.Message });
         }
 
         catch (Exception ex)

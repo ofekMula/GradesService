@@ -7,25 +7,49 @@ public sealed class QuestionNotFoundException : Exception
         : base($"Question of Snapshot: {snapshotId} with ID: '{questionId}' was not found.") { }
 }
 
+public sealed class ZoneNotFoundException : Exception
+{
+    public ZoneNotFoundException(int snapshotId, int zoneId)
+        : base($"Zone of Snapshot: {snapshotId} with ID: '{zoneId}' was not found.") { }
+}
+
+public sealed class TestNotFoundException : Exception
+{
+    public TestNotFoundException(int testId)
+        : base($"Test with ID: '{testId}' was not found.") { }
+}
+
 public sealed class PrincipalReportValidationException : Exception
 {
     public PrincipalReportValidationException(string message)
         : base(message) { }
 }
-
-
-
-public sealed class SnapshotHasNoQuestionsException : Exception
+public sealed class StudentReportValidationException : Exception
 {
-    // Single snapshot
-    public SnapshotHasNoQuestionsException(int snapshotId)
-        : base($"Snapshot '{snapshotId}' has no questions.") { }
+    public StudentReportValidationException(string message)
+        : base(message) { }
+}
 
-    // Multiple snapshots (assumes at least one id)
-    public SnapshotHasNoQuestionsException(IEnumerable<int> snapshotIds)
-        : base($"Snapshots [{string.Join(", ", snapshotIds)}] have no questions.") { }
+public sealed class SnapshotNotExistException : Exception
+{
+    public SnapshotNotExistException(int snapshotId)
+        : base($"Snapshot '{snapshotId}' does not exist or has no questions.") { }
 
-    // Convenience params overload
-    public SnapshotHasNoQuestionsException(params int[] snapshotIds)
+    public SnapshotNotExistException(IEnumerable<int> snapshotIds)
+        : base($"Snapshots [{string.Join(", ", snapshotIds)}] do not exist or have no questions.") { }
+
+    public SnapshotNotExistException(params int[] snapshotIds)
         : this((IEnumerable<int>)snapshotIds) { }
+}
+
+public sealed class PrincipalReportNoZones : Exception
+{
+    public PrincipalReportNoZones(IReadOnlyCollection<int>  snapshotIds)
+        : base($"Snapshots [{string.Join(", ", snapshotIds)}] have no zones with scores.") { }
+}
+
+public sealed class StudentReportNoZones : Exception
+{
+    public StudentReportNoZones(int snapshotId)
+        : base($"Snapshot {snapshotId} has no zones with scores.") { }
 }
