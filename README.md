@@ -24,14 +24,52 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 
 ## Getting Started
 
+### Prerequisites
+
+- .NET 9 SDK
+
+- Docker + Docker Compose
+
+### Run the Server
+- Via docker compose: `docker compose up`.
+- Local dev run: `dotnet watch run --project src/Grades.Api --reload`
+
 
 ## Implementation Notes
 
 ### Tech Stack
+- **NET 9 / ASP.NET Core 9** — Web API hosting, routing, and middleware.
+
+- **EF Core 9 + SQL Server + Microsoft.Data.SqlClient** — Querying SQL Server using EF Core (ORM) and LINQ; supports transactions, composite keys, pagination (Skip/Take), and efficient server-side operations.
+
+- **Swashbuckle.AspNetCore**  — OpenAPI/Swagger generation and interactive docs (Swagger UI).
+
 
 ### SQL Scripts
-1. static migration:
-2. procedure
-3. procdure
+1.  /sql/simple_migration_script.sql
+    - Declared constants variable for convenient.
+    - Wrap in a transaction for consistency.
+    - Manual ID allocation (MAX(id)+1) because tables ID columns aren’t IDENTITY.
 
-### BackEnd
+2. /sql/calculate_score_per_snapshot.sql
+   -  Split the problem into CTEs. `BaseRawScores` for matching scores of questions with the relevant subjects inside the snapshot context. `ZoneAgg`, `SubjectScore`, `SubjectQCounts` for aggregation calculations.
+   -  LEFT JOINs in the final SELECT keep empty subjects visible.
+
+### REST API WebServer
+1. **Questions CRUD**
+
+- get all questions
+  - Added pagination mechanism using `take` and `skip`.
+
+- create question
+  - Besides the required fields in the Question schema, I added `ZoneId`. This is crucial for scoring calculations.
+- delete question
+  - Delete both from the questions table and also from ZonesQuestions table.
+
+2. **Student Report**
+  - Catalog (SnapshotId = 0) is not allowed. For a valid snapshot, we compute zone averages (ignoring NULL scores).
+3.  **Principal Report**
+   - Catalog (SnapshotId 0) is rejected. We aggregate across the provided snapshots and return the single lowest-average zone overall
+
+### Observations
+- ID columns are intentionally not IDENTITY. Because each new snapshot duplicates the same entities.
