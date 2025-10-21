@@ -80,4 +80,3 @@ BEGIN
   WHERE s.SnapshotId = @SnapshotId
   ORDER BY s.SubjectName;
 END
-GO
