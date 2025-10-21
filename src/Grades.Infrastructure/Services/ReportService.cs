@@ -3,7 +3,6 @@ using Grades.Application.Exceptions;
 using Grades.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
-using Microsoft.Data.SqlClient;
 namespace Grades.Infrastructure.Services;
 
 public sealed class ReportService(GradesDbContext db) : IReportService
@@ -11,12 +10,15 @@ public sealed class ReportService(GradesDbContext db) : IReportService
 public async Task<StudentReportDto> GenerateStudentReportAsync(
         int snapshotId, CancellationToken ct = default)
     {
+        if (snapshotId == 0)
+        throw new StudentReportValidationException("Catalog snapshot (0) cannot be used for Student report.");
+
         var hasAny = await db.Questions
             .AsNoTracking()
             .AnyAsync(q => q.SnapshotId == snapshotId, ct);
 
         if (!hasAny)
-            throw new SnapshotHasNoQuestionsException(snapshotId);
+            throw new SnapshotNotExistException(snapshotId);
 
         var baseRaw =
             from s  in db.Subjects.AsNoTracking()
@@ -47,11 +49,11 @@ public async Task<StudentReportDto> GenerateStudentReportAsync(
             .ToListAsync(ct);
 
         if (zoneScores.Count == 0)
-            throw new SnapshotHasNoQuestionsException(snapshotId);
+            throw new StudentReportNoZones(snapshotId);
 
-        var top    = zoneScores.OrderByDescending(z => z.Score).Take(3).ToList();
+        var top = zoneScores.OrderByDescending(z => z.Score).Take(3).ToList();
         var bottom = zoneScores.OrderBy(z => z.Score).Take(3).ToList();
-        var low    = zoneScores.Where(z => z.Score < 60).OrderBy(z => z.Score).ToList();
+        var low = zoneScores.Where(z => z.Score < 60).OrderBy(z => z.Score).ToList();
 
         return new StudentReportDto(
             "Student report",
@@ -65,16 +67,24 @@ public async Task<StudentReportDto> GenerateStudentReportAsync(
 public async Task<PrincipalReportDto> GeneratePrincipalReportAsync(
     IReadOnlyCollection<int> snapshotIds,
     CancellationToken ct = default)
-{
+    {
+
+    if (snapshotIds.Contains(0))
+            throw new PrincipalReportValidationException("Catalog snapshot (0) cannot be used for Principal report.");
+
     if (snapshotIds is null || snapshotIds.Count == 0)
         throw new PrincipalReportValidationException("At least one snapshotId is required.");
 
-    var hasAny = await db.Questions.AsNoTracking()
-        .AnyAsync(q => snapshotIds.Contains(q.SnapshotId), ct);
+    var existing = await db.Questions.AsNoTracking()
+    .Where(q => snapshotIds.Contains(q.SnapshotId))
+    .Select(q => q.SnapshotId)
+    .Distinct()
+    .ToListAsync(ct);
 
-    if (!hasAny)
-        throw new SnapshotHasNoQuestionsException(snapshotIds);
+    var missing = snapshotIds.Except(existing).ToArray();
 
+    if (missing.Length > 0)
+        throw new SnapshotNotExistException(missing);
 
     var baseRaw =
         from s  in db.Subjects.AsNoTracking()
@@ -110,7 +120,7 @@ public async Task<PrincipalReportDto> GeneratePrincipalReportAsync(
         .ToListAsync(ct);
 
     if (perZone.Count == 0)
-        throw new SnapshotHasNoQuestionsException(snapshotIds);
+        throw new PrincipalReportNoZones(snapshotIds);
 
     var lowest = perZone.OrderBy(z => z.Score).First();
 

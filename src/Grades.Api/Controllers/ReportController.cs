@@ -7,13 +7,13 @@ using Grades.Application.Interfaces;
 namespace Grades.Api.Controllers;
 
 [ApiController]
-[Route("api/reports")]
+[Route("api/snapshots")]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reports;
     public ReportsController(IReportService reports) => _reports = reports;
 
-    [HttpGet("/api/snapshots/{snapshotId:int}/student-report")]
+    [HttpGet("{snapshotId:int}/reports/student")]
     public async Task<ActionResult<StudentReportDto>> GetStudentReport(int snapshotId, CancellationToken ct)
     {
         try
@@ -21,17 +21,34 @@ public class ReportsController : ControllerBase
             var report = await _reports.GenerateStudentReportAsync(snapshotId, ct);
             return Ok(report);
         }
-        catch (SnapshotHasNoQuestionsException ex)
+        catch (SnapshotNotExistException ex)
         {
             return NotFound(new { error = ex.Message });
         }
+
+        catch (StudentReportNoZones ex)
+        {
+            return UnprocessableEntity(new
+            {
+                error = ex.Message,
+                snapshots = (ex as dynamic)?.SnapshotId ?? null
+            });
+        }
+
+        catch (StudentReportValidationException ex)
+        {
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         catch (Exception ex)
         {
             return Problem(ex.Message);
         }
     }
 
-    [HttpPost("principal-report")]
+    [HttpPost("reports/principal")]
     public async Task<ActionResult<PrincipalReportDto>> GetPrincipalReport(
         [FromBody] PrincipalReportRequest request,
         CancellationToken ct)
@@ -41,11 +58,24 @@ public class ReportsController : ControllerBase
             var report = await _reports.GeneratePrincipalReportAsync(request.SnapshotIds, ct);
             return Ok(report);
         }
-        catch (SnapshotHasNoQuestionsException ex)
+        catch (SnapshotNotExistException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+
+        catch (PrincipalReportValidationException ex)
         {
             return BadRequest(new { error = ex.Message });
         }
 
+        catch (PrincipalReportNoZones ex)
+        {
+            return UnprocessableEntity(new
+            {
+                error = ex.Message,
+                snapshots = (ex as dynamic)?.SnapshotIds ?? null
+            });
+        }
         catch (Exception ex)
         {
             return Problem(ex.Message);
