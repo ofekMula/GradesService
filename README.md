@@ -26,13 +26,13 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 
 ### Prerequisites
 
-- .NET 9 SDK
-
-- Docker + Docker Compose
+- .NET 9 SDK (`dotnet --info` to verify)
+- SQL Server (local/remote/Azure). For macOS, use a remote SQL Server or Azure SQL.
+- (Optional) Docker + Docker Compose for containerized run
 
 ### Run the Server
-- Via docker compose: `docker compose up`.
 - Local dev run: `dotnet watch run --project src/Grades.Api --reload`
+- Via docker compose: `docker compose up`.
 - Swagger: `http://localhost:8080/swagger/index.html`
 
 ## Implementation Notes
@@ -73,6 +73,7 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 
 - create question
   - Besides the required fields in the Question schema, I added `ZoneId`. This is crucial for scoring calculations.
+
 - delete question
   - Delete both from the questions table and also from ZonesQuestions table.
 
