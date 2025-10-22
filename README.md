@@ -35,6 +35,8 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 - Via docker compose: `docker compose up`.
 - Swagger: `http://localhost:8080/swagger/index.html`
 
+- After the initial docker compose up, execute /sql/restore_grades_db.sql to restore the Grades database from backup.
+
 ## Implementation Notes
 
 ### Project Structure
