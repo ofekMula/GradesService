@@ -37,6 +37,16 @@ This service runs a snapshot-based grading system. It models subjects, their zon
 
 ## Implementation Notes
 
+### Project Structure
+
+- **Grades.Domain** – Entities.
+- **Grades.Application** – DTOs, interfaces (ports), validation, exceptions.
+- **Grades.Infrastructure** – EF Core DbContext.
+- **Grades.Api** – Main application, REST API (controllers), Swagger/OpenAPI UI.
+
+> **Inspiration:** Structure inspired by Jason Taylor’s Clean Architecture (ASP.NET Core):
+> https://github.com/jasontaylordev/CleanArchitecture
+
 ### Tech Stack
 - **NET 9 / ASP.NET Core 9** — Web API hosting, routing, and middleware.
 
